@@ -48,3 +48,7 @@ Boot xv6 in QEMU:
 
 ```bash
 make qemu
+Run: 
+ps
+
+Author: Hojun Jeon
