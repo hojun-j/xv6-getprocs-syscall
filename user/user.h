@@ -1,3 +1,9 @@
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "kernel/fs.h"
+#include "kernel/fcntl.h"
+#include "kernel/procinfo.h"
+
 #define SBRK_ERROR ((char *)-1)
 
 struct stat;
@@ -24,6 +30,8 @@ int getpid(void);
 char* sys_sbrk(int,int);
 int pause(int);
 int uptime(void);
+int getcourseno(void);
+int getprocs(struct procinfo *pinfo, int max_procs);
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -5,7 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
-#include "vm.h"
+#include "procinfo.h"
 
 uint64
 sys_exit(void)
@@ -47,7 +47,7 @@ sys_sbrk(void)
   argint(1, &t);
   addr = myproc()->sz;
 
-  if(t == SBRK_EAGER || n < 0) {
+  if(n < 0) {
     if(growproc(n) < 0) {
       return -1;
     }
@@ -107,3 +107,53 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+extern struct proc proc[];
+
+uint64
+sys_getprocs(void)
+{
+  uint64 uaddr;
+  int max;
+
+  // NOTE: in this xv6 version, argaddr/argint return void
+  argaddr(0, &uaddr);
+  argint(1, &max);
+
+  if (max <= 0)
+    return -1;
+
+  if (max > NPROC)
+    max = NPROC;
+
+  int count = 0;
+  struct proc* p;
+  struct proc* cur = myproc();
+
+  for (p = proc; p < &proc[NPROC] && count < max; p++) {
+    acquire(&p->lock);
+    if (p->state != UNUSED) {
+      struct procinfo kpi;
+      kpi.pid = p->pid;
+      kpi.ppid = (p->parent ? p->parent->pid : 0);
+      kpi.state = p->state;
+      kpi.sz = p->sz;
+      safestrcpy(kpi.name, p->name, sizeof(kpi.name));
+
+      if (copyout(cur->pagetable,
+        uaddr + (uint64)count * sizeof(kpi),
+        (char*)&kpi,
+        sizeof(kpi)) < 0) {
+        release(&p->lock);
+        return -1;
+      }
+      count++;
+    }
+    release(&p->lock);
+  }
+
+  return count;
+}
+
+
+
